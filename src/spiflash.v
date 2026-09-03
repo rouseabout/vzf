@@ -61,12 +61,13 @@ SPI_Master #(.CLKS_PER_HALF_BIT(CLK_DIV)) spi (
   .o_SPI_Clk(sck), .i_SPI_MISO(miso), .o_SPI_MOSI(mosi)
 );
 
-always @(posedge clk) begin
+reg new_request_t;
+always @(posedge clk or negedge resetn) begin
     if (~resetn) begin
         state <= 0;
         ncs_buf <= 1'b1;
     end else begin
-        reg new_request_t = reg_byte_we && ~reg_byte_we_r || reg_word_we && ~reg_word_we_r;
+        new_request_t = reg_byte_we && ~reg_byte_we_r || reg_word_we && ~reg_word_we_r;
         reg_byte_we_r <= reg_byte_we;
         reg_word_we_r <= reg_word_we;
         if (new_request_t)
