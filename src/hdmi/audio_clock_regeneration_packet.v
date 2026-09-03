@@ -43,7 +43,7 @@ module audio_clock_regeneration_packet (
 		sv2v_cast_32_signed = inp;
 	endfunction
 	localparam [19:0] CYCLE_TIME_STAMP_COUNTER_IDEAL = sv2v_cast_20_signed(sv2v_cast_32_signed(((VIDEO_RATE * sv2v_cast_32_signed(N)) / 128) / AUDIO_RATE));
-	localparam signed [31:0] CYCLE_TIME_STAMP_COUNTER_WIDTH = $clog2(sv2v_cast_20_signed(sv2v_cast_32_signed(real'(CYCLE_TIME_STAMP_COUNTER_IDEAL) * 1.1)));
+	localparam signed [31:0] CYCLE_TIME_STAMP_COUNTER_WIDTH = 20; /*$clog2(sv2v_cast_20_signed(sv2v_cast_32_signed(real'(CYCLE_TIME_STAMP_COUNTER_IDEAL) * 1.1)));*/
 	reg [19:0] cycle_time_stamp = 20'd0;
 	function automatic signed [CYCLE_TIME_STAMP_COUNTER_WIDTH - 1:0] sv2v_cast_B34B3_signed;
 		input reg signed [CYCLE_TIME_STAMP_COUNTER_WIDTH - 1:0] inp;
