@@ -1,0 +1,6 @@
+impl/
+nextpnr.log
+src/boards/icepi-zero/clock*.v
+vzf-*
+yosys.log
+*.o

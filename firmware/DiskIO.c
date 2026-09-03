@@ -1,15 +1,59 @@
+#define CONFIG_READCSD 1
+#define CONFIG_VERIFYCRC 1
+#define CONFIG_SINGLEBLOCKXFER 1
+
 /*-----------------------------------------------------------------------/
 /  Low level disk I/O module for RP2040 (Pico SDK)                       /
 /  Init/command structure ported from no-OS-FatFS-SD-SPI-RPi-Pico        /
 /-----------------------------------------------------------------------*/
 
+#include <stdint.h>
+
+extern volatile uint32_t counter;
+uint32_t make_timeout_time_ms(uint32_t duration);
+extern void sleep_ms(uint32_t duration);
+
+static uint32_t get_absolute_time()
+{
+    return counter;
+} 
+
+static int absolute_time_diff_us(uint32_t now, uint32_t target)
+{
+    return now < target;
+}
+
+typedef uint32_t absolute_time_t;
+
+#define SPI_CS   ((volatile uint8_t *)0x90000000)
+#define SPI_XFER ((volatile uint8_t *)0x90000004)
+
+static unsigned char spi_transfer_byte(unsigned char out_data)
+{
+    *SPI_XFER = out_data;
+    return *SPI_XFER;
+}
+
+static void spi_write_read_blocking(const uint8_t *value, uint8_t *rx, int count)
+{
+    for (int i = 0; i < count; i++)
+       rx[i] = spi_transfer_byte(value[i]);
+}
+
+static void spi_write_blocking(const uint8_t *value, int count)
+{
+    for (int i = 0; i < count; i++)
+       spi_transfer_byte(value[i]);
+}
+
+static void spi_read_blocking(int fillchar, uint8_t *rx, int count)
+{
+    for (int i = 0; i < count; i++)
+       rx[i] = spi_transfer_byte(0);
+}
+
 #include "ff.h"
 #include "diskio.h"
-#include "HALConfig.h"
-
-#include "hardware/spi.h"
-#include "hardware/gpio.h"
-#include "pico/time.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -100,33 +144,68 @@ static unsigned char Crc7(const unsigned char* data, int length) {
     return crc;
 }
 
+static const uint16_t crc16_table[256] = {
+    0x0000,0x1021,0x2042,0x3063,0x4084,0x50a5,0x60c6,0x70e7,0x8108,0x9129,0xa14a,
+    0xb16b,0xc18c,0xd1ad,0xe1ce,0xf1ef,0x1231,0x0210,0x3273,0x2252,0x52b5,0x4294,
+    0x72f7,0x62d6,0x9339,0x8318,0xb37b,0xa35a,0xd3bd,0xc39c,0xf3ff,0xe3de,0x2462,
+    0x3443,0x0420,0x1401,0x64e6,0x74c7,0x44a4,0x5485,0xa56a,0xb54b,0x8528,0x9509,
+    0xe5ee,0xf5cf,0xc5ac,0xd58d,0x3653,0x2672,0x1611,0x0630,0x76d7,0x66f6,0x5695,
+    0x46b4,0xb75b,0xa77a,0x9719,0x8738,0xf7df,0xe7fe,0xd79d,0xc7bc,0x48c4,0x58e5,
+    0x6886,0x78a7,0x0840,0x1861,0x2802,0x3823,0xc9cc,0xd9ed,0xe98e,0xf9af,0x8948,
+    0x9969,0xa90a,0xb92b,0x5af5,0x4ad4,0x7ab7,0x6a96,0x1a71,0x0a50,0x3a33,0x2a12,
+    0xdbfd,0xcbdc,0xfbbf,0xeb9e,0x9b79,0x8b58,0xbb3b,0xab1a,0x6ca6,0x7c87,0x4ce4,
+    0x5cc5,0x2c22,0x3c03,0x0c60,0x1c41,0xedae,0xfd8f,0xcdec,0xddcd,0xad2a,0xbd0b,
+    0x8d68,0x9d49,0x7e97,0x6eb6,0x5ed5,0x4ef4,0x3e13,0x2e32,0x1e51,0x0e70,0xff9f,
+    0xefbe,0xdfdd,0xcffc,0xbf1b,0xaf3a,0x9f59,0x8f78,0x9188,0x81a9,0xb1ca,0xa1eb,
+    0xd10c,0xc12d,0xf14e,0xe16f,0x1080,0x00a1,0x30c2,0x20e3,0x5004,0x4025,0x7046,
+    0x6067,0x83b9,0x9398,0xa3fb,0xb3da,0xc33d,0xd31c,0xe37f,0xf35e,0x02b1,0x1290,
+    0x22f3,0x32d2,0x4235,0x5214,0x6277,0x7256,0xb5ea,0xa5cb,0x95a8,0x8589,0xf56e,
+    0xe54f,0xd52c,0xc50d,0x34e2,0x24c3,0x14a0,0x0481,0x7466,0x6447,0x5424,0x4405,
+    0xa7db,0xb7fa,0x8799,0x97b8,0xe75f,0xf77e,0xc71d,0xd73c,0x26d3,0x36f2,0x0691,
+    0x16b0,0x6657,0x7676,0x4615,0x5634,0xd94c,0xc96d,0xf90e,0xe92f,0x99c8,0x89e9,
+    0xb98a,0xa9ab,0x5844,0x4865,0x7806,0x6827,0x18c0,0x08e1,0x3882,0x28a3,0xcb7d,
+    0xdb5c,0xeb3f,0xfb1e,0x8bf9,0x9bd8,0xabbb,0xbb9a,0x4a75,0x5a54,0x6a37,0x7a16,
+    0x0af1,0x1ad0,0x2ab3,0x3a92,0xfd2e,0xed0f,0xdd6c,0xcd4d,0xbdaa,0xad8b,0x9de8,
+    0x8dc9,0x7c26,0x6c07,0x5c64,0x4c45,0x3ca2,0x2c83,0x1ce0,0x0cc1,0xef1f,0xff3e,
+    0xcf5d,0xdf7c,0xaf9b,0xbfba,0x8fd9,0x9ff8,0x6e17,0x7e36,0x4e55,0x5e74,0x2e93,
+    0x3eb2,0x0ed1,0x1ef0
+};
+
+uint16_t crc16(uint16_t sum, const uint8_t *data, uint32_t len)
+{
+    while (len--) {
+       sum = crc16_table[(sum >> 8) ^ *data++] ^ (sum << 8);
+    }
+    return sum;
+}
+
 /*-----------------------------------------------------------------------*/
 /* SPI hardware helpers                                                   */
 /*-----------------------------------------------------------------------*/
 
 static uint8_t SdSpiWrite(uint8_t value) {
     uint8_t rx = SPI_FILL_CHAR;
-    spi_write_read_blocking(SD_SPI, &value, &rx, 1);
+    spi_write_read_blocking(&value, &rx, 1);
     return rx;
 }
 
 static void SpiRecvBytes(uint8_t* data, size_t len) {
-    spi_read_blocking(SD_SPI, SPI_FILL_CHAR, data, len);
+    spi_read_blocking(SPI_FILL_CHAR, data, len);
 }
 
 static void SpiSendBytes(const uint8_t* data, size_t len) {
-    spi_write_blocking(SD_SPI, data, len);
+    spi_write_blocking(data, len);
 }
 
 /* Acquire: select card (CS low) + one fill byte to synchronise. */
 static void SdAcquire(void) {
-    gpio_put(SD_SPI_CS, 0);
+    *SPI_CS = 0;
     SdSpiWrite(SPI_FILL_CHAR);
 }
 
 /* Release: deselect card (CS high) + one fill byte so DO is released. */
 static void SdRelease(void) {
-    gpio_put(SD_SPI_CS, 1);
+    *SPI_CS = 1;
     SdSpiWrite(SPI_FILL_CHAR);
 }
 
@@ -268,6 +347,7 @@ DSTATUS disk_initialize(BYTE pdrv) {
 
     if (pdrv != 0) return STA_NOINIT;
 
+#if 0
     /* SPI at low frequency (400 kHz) for init */
     spi_init(SD_SPI, 400 * 1000);
     spi_set_format(SD_SPI, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
@@ -278,16 +358,19 @@ DSTATUS disk_initialize(BYTE pdrv) {
     gpio_init(SD_SPI_CS);
     gpio_set_dir(SD_SPI_CS, GPIO_OUT);
     gpio_put(SD_SPI_CS, 1);
+#endif
+    *SPI_CS = 1;
 
     sdState.HighCapacity = false;
 
     /* Initializing sequence: CS HIGH, send 0xFF for at least 1ms (74+ clocks) */
-    gpio_put(SD_SPI_CS, 1);
+    *SPI_CS = 1;
     uint8_t ones[10];
     memset(ones, 0xFF, sizeof(ones));
-    absolute_time_t initEnd = make_timeout_time_ms(1);
+    absolute_time_t initEnd = make_timeout_time_ms(20);
+
     do {
-        spi_write_blocking(SD_SPI, ones, sizeof(ones));
+        spi_write_blocking(ones, sizeof(ones));
     } while (absolute_time_diff_us(get_absolute_time(), initEnd) > 0);
 
     /* Acquire — CS stays LOW for the whole init sequence */
@@ -345,14 +428,18 @@ DSTATUS disk_initialize(BYTE pdrv) {
         }
     }
 
+#if CONFIG_READCSD
     /* Read CSD for capacity (CS still held low) */
     if (SdReadCsdNolock() != 0) {
         SdRelease();
         return STA_NOINIT;
     }
+#endif
 
     SdRelease();
+#if 0
     spi_set_baudrate(SD_SPI, SD_SPI_BAUDRATE);
+#endif
 
     sdState.Initialized = true;
     return 0;
@@ -374,6 +461,16 @@ DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
     if (!sdState.Initialized)   return RES_NOTRDY;
     if (count == 0)             return RES_PARERR;
 
+#if CONFIG_SINGLEBLOCKXFER
+    if (count > 1) {
+        for (UINT i = 0; i < count; i++) {
+            if (disk_read(pdrv, buff + i*512, sector + i, 1) != RES_OK) {
+                return RES_ERROR;
+            }
+        }
+        return RES_OK;
+    }
+#endif
     uint32_t addr = SdAddr(sector);
 
     SdAcquire();
@@ -381,7 +478,13 @@ DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
         if (SdCmd(CMD17, addr) != 0x00) { SdRelease(); return RES_ERROR; }
         if (SdWaitToken(SD_START_BLOCK, SD_COMMAND_TIMEOUT_MS) != 0) { SdRelease(); return RES_ERROR; }
         SpiRecvBytes(buff, sdState.SectorSize);
+#if CONFIG_VERIFYCRC
+        uint16_t crc = SdSpiWrite(0xFF) << 8;
+        crc |= SdSpiWrite(0xFF);
+        if (crc != crc16(0, buff, sdState.SectorSize)) { SdRelease(); return RES_ERROR; }
+#else
         SdSpiWrite(0xFF); SdSpiWrite(0xFF); /* CRC */
+#endif
     } else {
         if (SdCmd(CMD18, addr) != 0x00) { SdRelease(); return RES_ERROR; }
         for (UINT i = 0; i < count; i++) {
@@ -404,24 +507,37 @@ DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count) {
     if (!sdState.Initialized)   return RES_NOTRDY;
     if (count == 0)             return RES_PARERR;
 
+#if CONFIG_SINGLEBLOCKXFER
+    if (count > 1) {
+        for (UINT i = 0; i < count; i++) {
+            if (disk_write(pdrv, buff + i*512, sector + i, 1) != RES_OK) {
+                return RES_ERROR;
+            }
+        }
+        return RES_OK;
+    }
+#endif
+
     uint32_t addr = SdAddr(sector);
     uint8_t response;
 
     SdAcquire();
     if (count == 1) {
+        uint16_t crc = crc16(0, buff, sdState.SectorSize);
         if (SdCmd(CMD24, addr) != 0x00) { SdRelease(); return RES_ERROR; }
         SdSpiWrite(SD_START_BLOCK);
         SpiSendBytes(buff, sdState.SectorSize);
-        SdSpiWrite(0xFF); SdSpiWrite(0xFF); /* dummy CRC */
+        SdSpiWrite(crc >> 8); SdSpiWrite(crc & 0xff);
         response = SdSpiWrite(0xFF);
         if ((response & 0x1F) != 0x05) { SdRelease(); return RES_ERROR; }
         if (!SdWaitReady(SD_COMMAND_TIMEOUT_MS)) { SdRelease(); return RES_ERROR; }
     } else {
         if (SdCmd(CMD25, addr) != 0x00) { SdRelease(); return RES_ERROR; }
         for (UINT i = 0; i < count; i++) {
+            uint16_t crc = crc16(0, buff + i*sdState.SectorSize, sdState.SectorSize);
             SdSpiWrite(SD_MULTI_TOKEN);
             SpiSendBytes(buff + (i * sdState.SectorSize), sdState.SectorSize);
-            SdSpiWrite(0xFF); SdSpiWrite(0xFF);
+            SdSpiWrite(crc >> 8); SdSpiWrite(crc & 0xff);
             response = SdSpiWrite(0xFF);
             if ((response & 0x1F) != 0x05) {
                 SdSpiWrite(SD_STOP_TOKEN);
@@ -452,40 +568,4 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
     case GET_BLOCK_SIZE:   *(DWORD*)buff = sdState.BlockSize;   return RES_OK;
     default:               return RES_PARERR;
     }
-}
-
-/*-----------------------------------------------------------------------*/
-/* Card detect ISR                                                       */
-/*-----------------------------------------------------------------------*/
-
-static void SdCardDetectCallback(uint gpio, uint32_t events) {
-    static bool busy = false;
-    if (busy) return;
-    busy = true;
-    if (gpio == SD_DETECT_PIN) {
-        sdState.Initialized = false;
-    }
-    busy = false;
-}
-
-/*-----------------------------------------------------------------------*/
-/* Platform init                                                         */
-/*-----------------------------------------------------------------------*/
-
-bool SDCardInit(void) {
-    gpio_init(SD_DETECT_PIN);
-    gpio_set_dir(SD_DETECT_PIN, GPIO_IN);
-    gpio_pull_up(SD_DETECT_PIN);
-    gpio_set_irq_enabled_with_callback(
-        SD_DETECT_PIN,
-        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-        true,
-        &SdCardDetectCallback);
-
-    if (gpio_get(SD_DETECT_PIN) != 0) {
-        return false;  /* no card present */
-    }
-
-    DSTATUS status = disk_initialize(0);
-    return (status == 0);
 }
