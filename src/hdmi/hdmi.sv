@@ -53,6 +53,12 @@ module hdmi
     input logic [23:0] 		      rgb, 
     input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0],
 
+    output reg vsync,
+    output reg [10:0] cx,
+    output reg [9:0] cy,
+    output [10:0] frame_width,
+    output [9:0] frame_height,
+
     // These outputs go to your HDMI port
 `ifdef TMDS_BY_LOGIC
     output logic [5:0] tmds,       // 6+2 pins/pmod used for hdmi
@@ -66,7 +72,6 @@ module hdmi
 
 localparam int NUM_CHANNELS = 3;
 logic hsync;
-logic vsync;
 
 logic [1:0] invert;
 
@@ -90,7 +95,7 @@ wire [102:0]  timing = pal_mode?{  htiming0, vtiming0, cea0 }:
 // demux timing parameters   
 wire [10:0] start_x           = timing[102:92];
 
-wire [10:0] frame_width       = timing[91:81];
+assign frame_width            = timing[91:81];
 wire [10:0] screen_width      = timing[80:70];
 wire [10:0] hsync_pulse_start = timing[69:59];
 wire [10:0] hsync_pulse_size  = timing[58:48];
@@ -98,7 +103,7 @@ wire [10:0] hsync_pulse_size  = timing[58:48];
 // if we have a short frame, then the scandoubler outputs two lines less
 // if amiga outputs interlaced video, then the scandoubler outputs one line
 // less resulting in an odd overall frame height
-wire [9:0] frame_height       = timing[47:38] - (short_frame ? 10'd2 : 10'd0) - (interlace ? 10'd1 : 10'd0);
+assign frame_height           = timing[47:38] - (short_frame ? 10'd2 : 10'd0) - (interlace ? 10'd1 : 10'd0);
 wire [9:0] screen_height      = timing[37:28];
 wire [9:0] vsync_pulse_start  = timing[27:18];
 wire [9:0] vsync_pulse_size   = timing[17: 8];
@@ -106,9 +111,6 @@ wire [9:0] vsync_pulse_size   = timing[17: 8];
 wire [7:0] cea                = timing[7:0]; 
    
 assign invert = 2'b11;
-
-reg [10:0] cx;
-reg [9:0] cy;
 
 always_comb begin
     hsync <= invert[0] ^ (cx >= screen_width + hsync_pulse_start && cx < screen_width + hsync_pulse_start + hsync_pulse_size);
