@@ -10,6 +10,7 @@ module mc6847
     output rd,
     output [10:0] addr,
     input [7:0] di,
+    output status2,
     output [4:0] addr_status,
     input [7:0] di_status,
     input show_status,
@@ -72,7 +73,9 @@ module mc6847
     wire [6:0] ly6 = cy6 - (pal_mode ? TOP_EDGE/6 : TOP_EDGE/6/2);
     wire visible_x = (cx >= LEFT_EDGE) & (cx < LEFT_EDGE + 512);
     wire visible_y = (cy >= 10'(top_edge))  & (cy < 10'(top_edge) + 384);
-    wire status_y = show_status && (cy >= 10'(top_edge) + 384 + 24) & (cy < 10'(top_edge) + 384 + 48);
+    wire status_y1 = (cy >= 10'(top_edge) - 48) & (cy < 10'(top_edge) - 24);
+    wire status_y2 = (cy >= 10'(top_edge) + 384 + 24) & (cy < 10'(top_edge) + 384 + 48);
+    wire status_y = show_status && (status_y1 | status_y2);
 
     assign rd = visible_x & visible_y;
 
@@ -80,6 +83,7 @@ module mc6847
     wire [10:0] char_column = lx / 16;
     wire [9:0] char_row    = ag ? ly6 : ly6[5:2]; // cy divided by 6 or 24
 
+    assign status2 = status_y2;
     assign addr_status = char_column;
 
     // text/character mode and status bar

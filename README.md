@@ -31,9 +31,15 @@ Use the USB keyboard like you would the traditional VZ keyboard. There are some 
 |---|---|
 |F1 |Select VZ console |
 |F2 |Select I/O console |
-|F10 |Toggle between PAL/NTSC mode|
+|F9 |Toggle between VZ-200/VZ-300/TURBO clock speed |
+|F10 |Toggle between PAL/NTSC mode |
+|F11 |Toggle hear cassette audio |
 |CTRL+F12 |Reset VZ |
 |ALT+F12 |Reset I/O |
+
+TURBO clock speed is 28.5MHz.
+Some programs will behave incorrectly with TURBO clock speed.
+It is not possible to load cassette tapes with TURBO clock speed.
 
 ### Mounting floppy disks
 

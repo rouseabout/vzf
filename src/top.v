@@ -59,9 +59,14 @@ module top #(
     input [9:0] frame_height,
     output [23:0] rgb
 );
+    localparam CLK_FREQ = 28_500_000;
+
+    reg [26:0] top_status_show_counter;
 
     reg [7:0] last_key;
     reg show_vz;
+    reg [1:0] speed;
+    reg hear_cassette;
     always @(posedge clk_pixel or negedge reset_n) begin
         if (~reset_n) begin
             last_key <= 8'h00;
@@ -70,15 +75,26 @@ module top #(
 `else
             show_vz <= 0;
 `endif
+            speed <= 2'd0;
             pal_mode <= 1;
+            hear_cassette <= 1;
         end else begin
             last_key <= key0;
             if (key0 == 8'h3a) begin // F1
                 show_vz <= 1;
             end else if (key0 == 8'h3b) begin // F2
                 show_vz <= 0;
+            end else if (key0 != last_key && key0 == 8'h42) begin // F9
+                speed <= speed == 2'd2 ? 2'd0 : speed + 1'b1;
+                top_status_show_counter <= 3*CLK_FREQ;
             end else if (key0 != last_key && key0 == 8'h43) begin // F10
                 pal_mode <= ~pal_mode;
+                top_status_show_counter <= 3*CLK_FREQ;
+            end else if (key0 != last_key && key0 == 8'h44) begin // F11
+                hear_cassette <= ~hear_cassette;
+                top_status_show_counter <= 3*CLK_FREQ;
+            end else if (top_status_show_counter > 0) begin
+                top_status_show_counter <= top_status_show_counter - 1'b1;
             end
         end
     end
@@ -91,15 +107,17 @@ module top #(
     wire vdg_css, vz_vdg_css;
     wire vdg_bw;
     wire vdg_show_status, vz_vdg_show_status;
+    wire vdg_status2;
     wire [4:0] vdg_status_addr;
     wire [7:0] vdg_status_data, vz_vdg_status_data, ioc_vdg_status_data;
+    reg [7:0] top_status_data;
 
     assign vdg_di          = show_vz ? vz_vdg_di          : ioc_vdg_di;
     assign vdg_ag          = show_vz ? vz_vdg_ag          : 1'b0;
     assign vdg_css         = show_vz ? vz_vdg_css         : 1'b0;
     assign vdg_bw          = show_vz ? 1'b0               : 1'b1;
-    assign vdg_show_status = show_vz ? vz_vdg_show_status : 1'b0;
-    assign vdg_status_data = show_vz ? vz_vdg_status_data : 8'h00; //ioc_vdg_status_data;
+    assign vdg_show_status = vdg_status2 ? vz_vdg_show_status : (top_status_show_counter > 0);
+    assign vdg_status_data = vdg_status2 ? vz_vdg_status_data : top_status_data;
 
     mc6847 #(.LEFT_EDGE(LEFT_EDGE), .TOP_EDGE(TOP_EDGE)) mc6847(
         .clk(clk_pixel),
@@ -111,7 +129,7 @@ module top #(
         .ag(vdg_ag),
         .css(vdg_css),
         .bw(vdg_bw),
-        .show_status(vdg_show_status), .addr_status(vdg_status_addr), .di_status(vdg_status_data),
+        .show_status(vdg_show_status), .status2(vdg_status2), .addr_status(vdg_status_addr), .di_status(vdg_status_data),
         .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .rgb(rgb));
 
     wire [10:0] mosi_seek;
@@ -130,6 +148,8 @@ module top #(
     vz vz(
         .clk(clk_pixel),
         .reset_n(reset_n & ~reset_vz),
+        .speed(speed),
+        .hear_cassette(hear_cassette),
 
         .key_modifiers(show_vz ? key_modifiers : 8'h00),
         .key0(show_vz ? key0 : 8'h00),
@@ -222,5 +242,37 @@ module top #(
         .O_sdram_dqm(O_sdram_dqm)
         );
 `endif // CONFIG_IO
+
+    always @(posedge clk_pixel or negedge reset_n) begin
+        if (~reset_n) begin
+            top_status_data <= 8'h00;
+        end else begin
+            case(vdg_status_addr)
+            5'd0: top_status_data <= speed == 2'd0 ? 8'h16 : speed == 2'd1 ? 8'h16 : 8'h14; // VZ-200 / VZ-300 / TURBO
+            5'd1: top_status_data <= speed == 2'd0 ? 8'h1a : speed == 2'd1 ? 8'h1a : 8'h15;
+            5'd2: top_status_data <= speed == 2'd0 ? 8'h2d : speed == 2'd1 ? 8'h2d : 8'h12;
+            5'd3: top_status_data <= speed == 2'd0 ? 8'h32 : speed == 2'd1 ? 8'h33 : 8'h02;
+            5'd4: top_status_data <= speed == 2'd0 ? 8'h30 : speed == 2'd1 ? 8'h30 : 8'h0f;
+            5'd5: top_status_data <= speed == 2'd0 ? 8'h30 : speed == 2'd1 ? 8'h30 : 8'h20;
+
+            5'd14: top_status_data <= pal_mode ? 8'h10 : 8'h0e; // PAL / NTSC
+            5'd15: top_status_data <= pal_mode ? 8'h01 : 8'h14;
+            5'd16: top_status_data <= pal_mode ? 8'h0c : 8'h13;
+            5'd17: top_status_data <= pal_mode ? 8'h20 : 8'h03;
+
+            5'd23: top_status_data <= hear_cassette ? 8'h08 : 8'h20; // HEAR CASS
+            5'd24: top_status_data <= hear_cassette ? 8'h05 : 8'h20;
+            5'd25: top_status_data <= hear_cassette ? 8'h01 : 8'h20;
+            5'd26: top_status_data <= hear_cassette ? 8'h12 : 8'h20;
+
+            5'd28: top_status_data <= hear_cassette ? 8'h03 : 8'h20;
+            5'd29: top_status_data <= hear_cassette ? 8'h01 : 8'h20;
+            5'd30: top_status_data <= hear_cassette ? 8'h13 : 8'h20;
+            5'd31: top_status_data <= hear_cassette ? 8'h13 : 8'h20;
+
+            default: top_status_data <= 8'h20;
+            endcase
+        end
+    end
 
 endmodule

@@ -15,6 +15,8 @@
 module vz (
     input clk,
     input reset_n,
+    input [1:0] speed,
+    input hear_cassette,
 
     input [7:0] key_modifiers,
     input [7:0] key0, key1, key2, key3,
@@ -138,8 +140,12 @@ module vz (
         if (~reset_n) begin
             accumulator <= 32'd0;
             cpu_ce <= 1'b0;
-        end else begin                                     /* 3.579500 MHz / 3.546894 MHz */
-            {cpu_ce, accumulator} <= accumulator + (vz200_xtal ? 539432822 : 534519078);
+        end else begin
+            if (speed == 2'd2) begin
+                cpu_ce <= 1;
+            end else begin                                    /* 3.579500 MHz / 3.546894 MHz */
+                {cpu_ce, accumulator} <= accumulator + (~speed[0] ? 539432822 : 534519078);
+            end
         end
     end
 
@@ -575,7 +581,7 @@ wire [7:0] KEY_DATA = { KEY_DATA_BIT7, KEY_DATA_BIT6, KEY_DATA_BIT5, KEY_DATA_BI
         end
     end
 
-    assign speaker = output_register[0]; //cassette_miso_bit
+    assign speaker = output_register[0] ^ (hear_cassette ? cassette_miso_bit ^ output_register[2] : 1'b0);
     assign vdg_ag = output_register[3];
     assign vdg_css = output_register[4];
 
