@@ -199,10 +199,75 @@ module tangnano20k_top
     assign leds[4] = report_toggle;
     assign leds[3] = ~connerr;
 
+    reg [0:7] key_modifiers_w, key0_w, key1_w, key2_w, key3_w;
+    reg game_l_w, game_r_w, game_u_w, game_d_w, game_a_w, game_b_w;
+    always @(posedge clk_60 or negedge reset_n) begin
+        if (~reset_n) begin
+            key_modifiers_w <= 0;
+            key0_w <= 0;
+            key1_w <= 0;
+            key2_w <= 0;
+            key3_w <= 0;
+            game_l_w <= 0;
+            game_r_w <= 0;
+            game_u_w <= 0;
+            game_d_w <= 0;
+            game_a_w <= 0;
+            game_b_w <= 0;
+        end else begin
+            if (usb_report) begin
+                if (usb_type == 2'd1) begin
+                    key_modifiers_w <= key_modifiers;
+                    key0_w <= key0;
+                    key1_w <= key1;
+                    key2_w <= key2;
+                    key3_w <= key3;
+                end else if (usb_type == 2'd3) begin
+                    game_l_w <= game_l;
+                    game_r_w <= game_r;
+                    game_u_w <= game_u;
+                    game_d_w <= game_d;
+                    game_a_w <= game_a;
+                    game_b_w <= game_b;
+                end
+            end
+        end
+    end
+
+    reg [0:7] key_modifiers_r, key0_r, key1_r, key2_r, key3_r;
+    reg game_l_r, game_r_r, game_u_r, game_d_r, game_a_r, game_b_r;
+    always @(posedge clk_pixel or negedge reset_n) begin
+        if (~reset_n) begin
+            key_modifiers_r <= 0;
+            key0_r <= 0;
+            key1_r <= 0;
+            key2_r <= 0;
+            key3_r <= 0;
+            game_l_r <= 0;
+            game_r_r <= 0;
+            game_u_r <= 0;
+            game_d_r <= 0;
+            game_a_r <= 0;
+            game_b_r <= 0;
+        end else begin
+            key_modifiers_r <= key_modifiers_w;
+            key0_r <= key0_w;
+            key1_r <= key1_w;
+            key2_r <= key2_w;
+            key3_r <= key3_w;
+            game_l_r <= game_l_w;
+            game_r_r <= game_r_w;
+            game_u_r <= game_u_w;
+            game_d_r <= game_d_w;
+            game_a_r <= game_a_w;
+            game_b_r <= game_b_r;
+        end
+    end
+
     top #(.LEFT_EDGE(104), .TOP_EDGE(96)) top(
         .clk_pixel(clk_pixel), .clk_sdram(clk_60), .clk_sdramp(clk_60p),
-        .key_modifiers(key_modifiers), .key0(key0), .key1(key1), .key2(key2), .key3(key3),
-        .game_l(game_l), .game_r(game_r), .game_u(game_u), .game_d(game_d), .game_a(game_a), .game_b(game_b),
+        .key_modifiers(key_modifiers_r), .key0(key0_r), .key1(key1_r), .key2(key2_r), .key3(key3_r),
+        .game_l(game_l_r), .game_r(game_r_r), .game_u(game_u_r), .game_d(game_d_r), .game_a(game_a_r), .game_b(game_b_r),
         .pal_mode(pal_mode),
         .vsync(vsync), .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .rgb(rgb), .fdcemu_en(1'b1), .reset_n(reset_n & locked & video_locked),
         .sd_clk(sdclk), .sd_mosi(sdcmd), .sd_miso(sddat[0]), .sd_csn(sddat[3]),

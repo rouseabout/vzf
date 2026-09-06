@@ -113,6 +113,8 @@ module icepi_zero_top
     wire [9:0] usb0_rom_addr;
     wire [3:0] usb0_rom_dout;
     wire usb0_rom_en;
+    wire [1:0] usb0_type;
+    wire usb0_report;
 
     wire usb1_dm_i, usb1_dp_i;
     wire usb1_dm_o, usb1_dp_o;
@@ -120,6 +122,8 @@ module icepi_zero_top
     wire [9:0] usb1_rom_addr;
     wire [3:0] usb1_rom_dout;
     wire usb1_rom_en;
+    wire [1:0] usb1_type;
+    wire usb1_report;
 
     wire [7:0] key_modifiers, key0, key1, key2, key3;
     wire game_l, game_r, game_u, game_d, game_a, game_b;
@@ -133,8 +137,8 @@ module icepi_zero_top
         .usb_dm_o(usb0_dm_o), .usb_dp_o(usb0_dp_o),
         .usb_oe(usb0_oe),
 
-        .typ(),
-        .full_report(),
+        .typ(usb0_type),
+        .full_report(usb0_report),
         .connerr(),
         .busy(),
 
@@ -165,8 +169,8 @@ module icepi_zero_top
         .usb_dm_o(usb1_dm_o), .usb_dp_o(usb1_dp_o),
         .usb_oe(usb1_oe),
 
-        .typ(),
-        .full_report(),
+        .typ(usb1_type),
+        .full_report(usb1_report),
         .connerr(),
         .busy(),
 
@@ -197,6 +201,74 @@ module icepi_zero_top
         .enb(usb1_rom_en)
         );
 
+    reg [0:7] key_modifiers_w, key0_w, key1_w, key2_w, key3_w;
+    reg game_l_w, game_r_w, game_u_w, game_d_w, game_a_w, game_b_w;
+    always @(posedge clk_60 or negedge reset_n) begin
+        if (~reset_n) begin
+            key_modifiers_w <= 0;
+            key0_w <= 0;
+            key1_w <= 0;
+            key2_w <= 0;
+            key3_w <= 0;
+            game_l_w <= 0;
+            game_r_w <= 0;
+            game_u_w <= 0;
+            game_d_w <= 0;
+            game_a_w <= 0;
+            game_b_w <= 0;
+        end else begin
+            if (usb0_report) begin
+                if (usb0_type == 2'd1) begin
+                    key_modifiers_w <= key_modifiers;
+                    key0_w <= key0;
+                    key1_w <= key1;
+                    key2_w <= key2;
+                    key3_w <= key3;
+                end
+            end
+            if (usb1_report) begin
+                if (usb1_type == 2'd3) begin
+                    game_l_w <= game_l;
+                    game_r_w <= game_r;
+                    game_u_w <= game_u;
+                    game_d_w <= game_d;
+                    game_a_w <= game_a;
+                    game_b_w <= game_b;
+                end
+            end
+        end
+    end
+
+    reg [0:7] key_modifiers_r, key0_r, key1_r, key2_r, key3_r;
+    reg game_l_r, game_r_r, game_u_r, game_d_r, game_a_r, game_b_r;
+    always @(posedge clk_pixel or negedge reset_n) begin
+        if (~reset_n) begin
+            key_modifiers_r <= 0;
+            key0_r <= 0;
+            key1_r <= 0;
+            key2_r <= 0;
+            key3_r <= 0;
+            game_l_r <= 0;
+            game_r_r <= 0;
+            game_u_r <= 0;
+            game_d_r <= 0;
+            game_a_r <= 0;
+            game_b_r <= 0;
+        end else begin
+            key_modifiers_r <= key_modifiers_w;
+            key0_r <= key0_w;
+            key1_r <= key1_w;
+            key2_r <= key2_w;
+            key3_r <= key3_w;
+            game_l_r <= game_l_w;
+            game_r_r <= game_r_w;
+            game_u_r <= game_u_w;
+            game_d_r <= game_d_w;
+            game_a_r <= game_a_w;
+            game_b_r <= game_b_r;
+        end
+    end
+
     wire flash_sck;
     wire tristate = 1'b0;
     USRMCLK u1 (.USRMCLKI(flash_sck), .USRMCLKTS(tristate));
@@ -206,8 +278,8 @@ module icepi_zero_top
         .SDRAM_DATA_WIDTH(16), .SDRAM_ADDR_WIDTH(13)
     ) top (
         .clk_pixel(clk_pixel), .clk_sdram(clk_60), .clk_sdramp(clk_60p),
-        .key_modifiers(key_modifiers), .key0(key0), .key1(key1), .key2(key2), .key3(key3),
-        .game_l(game_l), .game_r(game_r), .game_u(game_u), .game_d(game_d), .game_a(game_a), .game_b(game_b),
+        .key_modifiers(key_modifiers_r), .key0(key0_r), .key1(key1_r), .key2(key2_r), .key3(key3_r),
+        .game_l(game_l_r), .game_r(game_r_r), .game_u(game_u_r), .game_d(game_d_r), .game_a(game_a_r), .game_b(game_b_r),
         .pal_mode(pal_mode),
         .vsync(vsync), .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .rgb(rgb), .fdcemu_en(1'b1), .reset_n(reset_n & locked & video_locked),
 
