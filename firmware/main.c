@@ -608,6 +608,7 @@ static void play(const char *filename)
     ringbuffer_where(&rb_waveform, RB_WRITE, 1024, &data1, &size1, &data2, &size2);
     memset(data1, 0, size1);
     memset(data2, 0, size2);
+    ringbuffer_advance(&rb_waveform, RB_WRITE, 1024);
 
     playing = 1;
 
@@ -634,8 +635,16 @@ static void play(const char *filename)
     f_close(&file);
 
     while (ringbuffer_read_available(&rb_waveform)) {
-        if (getch_noblock() == 'Q')
-            break;
+        getch_noblock();
+    }
+
+    int ss = ringbuffer_where(&rb_waveform, RB_WRITE, 1024, &data1, &size1, &data2, &size2);
+    memset(data1, 0, size1);
+    memset(data2, 0, size2);
+    ringbuffer_advance(&rb_waveform, RB_WRITE, 1024);
+
+    while (ringbuffer_read_available(&rb_waveform)) {
+        getch_noblock();
     }
 
     playing = 0;
