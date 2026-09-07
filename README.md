@@ -7,7 +7,7 @@ Capabilities:
 
 * Cycle accurate Z80 CPU
 * 16 KiB ROM, extensions ROMs, and 16/32/64 KiB RAM (configurable at synthesis time)
-* MC6847 with HDMI output; PAL and NSTSC vertical sync rates supported
+* MC6847 with HDMI output; PAL and NTSC vertical sync rates supported
 * USB Keyboard
 * USB Gamepad/Joystick
 * Floppy Disk Drive emulator; supports .DSK images and .VZ files read from SD card
@@ -57,7 +57,7 @@ WAV files must be 8-bit PCM, mono, 22050 Hz.
 
 ### I/O commands
 
-The following commands are implemnted by I/O implements.
+The following commands are implemented by I/O.
 Some commands take arguments.
 
 | Command | Description |
@@ -65,7 +65,7 @@ Some commands take arguments.
 |`CD dirname`|Change directory. |
 |`CLS` |Clear screen. |
 |`DIR [-L]`|Directory listing. Use -L option to list file sizes and attributes. |
-|`DRIVE n`|Select floppy drive, where n is 1 or 2. Future `MOUNT`, `SAVE` and `UMOUNT` commands will affect the selected floppy drive. |
+|`DRIVE n`|Select floppy drive, where n is 1 or 2. Future `MOUNT`, `SAVE` and `UNMOUNT` commands will affect the selected floppy drive. |
 |`ERA filename` |Erase filename.  |
 |`HEXDUMP filename` |Dump contents of file to screen.  |
 |`INSPECT filename` |Inspect contents of a floppy disk image. |
@@ -81,7 +81,7 @@ Some commands take arguments.
 Any text sent to the VZ printer port is redirected to the UART attached to the the USB programming cable.
 The UART configuration is 115200 baud 8-N-1.
 
-To recieve output on Linux, first identify the device file name of the USB programming port. On my computer this always appears as /dev/ttyUSB1. Then type.
+To receive output on Linux, first identify the device file name of the USB programming port. On my computer this always appears as /dev/ttyUSB1. Then type.
 
 ```
 stty -F /dev/ttyUSB1 115200 cs8
