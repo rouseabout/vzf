@@ -1,4 +1,5 @@
 //`define CONFIG_2KB
+//`define CONFIG_6KB
 //`define CONFIG_16KB
 `define CONFIG_32KB
 //`define CONFIG_64KB
@@ -61,6 +62,10 @@ module vz (
     localparam ROM_WIDTH = 14; /* 16k (0000-3fff) */
 `ifdef CONFIG_2KB
     localparam RAM1_WIDTH = 11; /* 2k (7800-7fff) */
+`endif
+`ifdef CONFIG_6KB
+    localparam RAM1_WIDTH = 11; /* 2k (7800-7fff) */
+    localparam RAM2_WIDTH = 12; /* 4k (8000-8fff) */
 `endif
 `ifdef CONFIG_16KB
     localparam RAM1_WIDTH = 14; /* 16k (7800-b7ff) */
@@ -188,6 +193,9 @@ module vz (
 `ifdef CARTRIDGE2_ENABLE
     wire cartridge2d_cs_n, cartridge2e_cs_n, cartridge2f_cs_n;
 `endif
+`ifdef CONFIG_6KB
+    wire ram2_cs_n;
+`endif
 `ifdef CONFIG_64KB
     wire ram2_cs_n;
     wire ram3_cs_n;
@@ -206,6 +214,9 @@ module vz (
     wire [7:0] data_miso_ram1;
 `ifdef CARTRIDGE2_ENABLE
     wire [7:0] data_miso_cartridge2d, data_miso_cartridge2e, data_miso_cartridge2f;
+`endif
+`ifdef CONFIG_6KB
+    wire [7:0] data_miso_ram2;
 `endif
 `ifdef CONFIG_64KB
     wire [7:0] data_miso_ram2;
@@ -233,6 +244,9 @@ module vz (
         ~cartridge2d_cs_n ? data_miso_cartridge2d :
         ~cartridge2e_cs_n ? data_miso_cartridge2e :
         ~cartridge2f_cs_n ? data_miso_cartridge2f :
+`endif
+`ifdef CONFIG_6KB
+        ~ram2_cs_n ? data_miso_ram2 :
 `endif
 `ifdef CONFIG_64KB
         ~ram2_cs_n ? data_miso_ram2 :
@@ -264,6 +278,9 @@ module vz (
     assign cartridge2d_cs_n = ~(!mreq_n & (addr >= 16'hd000) & (addr < 16'he000));
     assign cartridge2e_cs_n = ~(!mreq_n & (addr >= 16'he000) & (addr < 16'hf000));
     assign cartridge2f_cs_n = ~(!mreq_n & (addr >= 16'he000));
+`endif
+`ifdef CONFIG_6KB
+    assign ram2_cs_n = ~(!mreq_n & (addr >= 16'h8000) & (addr < 16'h9000));
 `endif
 `ifdef CONFIG_64KB
     assign ram2_cs_n = ~(!mreq_n & (addr >= 16'h8000) & (addr < 16'hc000));
@@ -379,6 +396,19 @@ module vz (
         .rd_n(rd_n),
         .wr_n(1'b1),
         .addr(addr[12-1:0])
+    );
+`endif
+
+`ifdef CONFIG_6KB
+    membram2 #(RAM2_WIDTH) ram2 (
+        .clk(~clk),
+        .reset_n(reset_n),
+        .data_out(data_miso_ram2),
+        .data_in(data_mosi),
+        .cs_n(ram2_cs_n),
+        .rd_n(rd_n),
+        .wr_n(wr_n),
+        .addr(addr[RAM2_WIDTH-1:0])
     );
 `endif
 
