@@ -44,6 +44,7 @@ module tangnano20k_top
     output wire [1:0] O_sdram_ba,
     output wire [3:0] O_sdram_dqm
 );
+    localparam CLK_PIXEL_FREQ = 28_500_000;
 
     wire reset_n;
     assign reset_n = ~button_s1_i;
@@ -72,9 +73,28 @@ module tangnano20k_top
         .video_locked(video_locked)
         );
 
+    wire speaker;
+    assign gpio[0] = speaker;
+    wire [15:0] audio_left = speaker ? 16'h0fff : 16'h0000;
+    wire [15:0] audio_right = audio_left;
+
     // audio/video out
-    wire clk_audio;
+    reg clk_audio;
+    reg [8:0] aclk_cnt;
     reg [15:0] audio_reg [2];
+
+    always @(posedge clk_pixel) begin
+        if (aclk_cnt < CLK_PIXEL_FREQ / 48000 / 2 -1)
+            aclk_cnt <= aclk_cnt + 9'd1;
+        else begin
+            aclk_cnt <= 9'd0;
+            clk_audio <= ~clk_audio;
+            // Convert signed two's complement → offset binary:
+            // flip sign bit (bit 14).  Bit 15 = 0 (15-bit audio in 16-bit slot).
+            audio_reg[0] <= {1'b0, ~audio_left[14],  audio_left[13:0]};
+            audio_reg[1] <= {1'b0, ~audio_right[14], audio_right[13:0]};
+        end
+    end
 
     wire [2:0] tmds;
     wire tmds_clock;
@@ -94,10 +114,9 @@ module tangnano20k_top
     ) hdmi (
         .clk_pixel_x5(clk_pixel_x5),
         .clk_pixel(clk_pixel),
-        //.clk_audio(clk_audio),
-        //.audio_sample_en(),
-        //.audio_sample_word_0(audio_reg),
-        //.audio_sample_word_1(audio_reg),
+        .clk_audio(clk_audio),
+        .audio_sample_word_0(audio_reg[0]),
+        .audio_sample_word_1(audio_reg[1]),
         .tmds(tmds),
         .tmds_clock(tmds_clock),
 
@@ -272,7 +291,7 @@ module tangnano20k_top
         .vsync(vsync), .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .rgb(rgb), .fdcemu_en(1'b1), .reset_n(reset_n & locked & video_locked),
         .sd_clk(sdclk), .sd_mosi(sdcmd), .sd_miso(sddat[0]), .sd_csn(sddat[3]),
 
-        .speaker(gpio[0]),
+        .speaker(speaker),
 
         .uart_rx_i(uart_rx_i),
         .uart_tx_o(uart_tx_o),

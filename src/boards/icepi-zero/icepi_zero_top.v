@@ -36,6 +36,8 @@ module icepi_zero_top
     output sdram_cke,
     output sdram_clk,
 );
+    localparam CLK_PIXEL_FREQ = 28_500_000;
+
     wire reset_n;
     assign reset_n = button[0];
 
@@ -58,6 +60,28 @@ module icepi_zero_top
         .locked(video_locked)
        );
 
+    wire speaker;
+    wire [15:0] audio_left = speaker ? 16'h0fff : 16'h0000;
+    wire [15:0] audio_right = audio_left;
+
+    // audio/video out
+    reg clk_audio;
+    reg [8:0] aclk_cnt;
+    reg [15:0] audio_reg [2];
+
+    always @(posedge clk_pixel) begin
+        if (aclk_cnt < CLK_PIXEL_FREQ / 48000 / 2 -1)
+            aclk_cnt <= aclk_cnt + 9'd1;
+        else begin
+            aclk_cnt <= 9'd0;
+            clk_audio <= ~clk_audio;
+            // Convert signed two's complement → offset binary:
+            // flip sign bit (bit 14).  Bit 15 = 0 (15-bit audio in 16-bit slot).
+            audio_reg[0] <= {1'b0, ~audio_left[14],  audio_left[13:0]};
+            audio_reg[1] <= {1'b0, ~audio_right[14], audio_right[13:0]};
+        end
+    end
+
     // audio/video out
     wire [2:0] tmds;
     wire tmds_clock;
@@ -77,10 +101,9 @@ module icepi_zero_top
     ) hdmi (
         .clk_pixel_x5(clk_pixel_x5),
         .clk_pixel(clk_pixel),
-        //.clk_audio(clk_audio),
-        //.audio_sample_en(),
-        //.audio_sample_word_0(audio_reg),
-        //.audio_sample_word_1(audio_reg),
+        .clk_audio(clk_audio),
+        .audio_sample_word_0(audio_reg[0]),
+        .audio_sample_word_1(audio_reg[1]),
         .tmds(tmds),
         .tmds_clock(tmds_clock),
 
@@ -285,7 +308,7 @@ module icepi_zero_top
 
         .sd_csn(sd_csn), .sd_clk(sd_clk), .sd_mosi(sd_mosi), .sd_miso(sd_miso),
 
-        // .speaker(gpio[0]),
+        .speaker(speaker),
 
         .uart_rx_i(usb_rx),
         .uart_tx_o(usb_tx),

@@ -165,15 +165,13 @@ These steps can be automated by typing `make install-tangnano20k-gowin`.
 The Icepi Zero includes a HDMI Port, SD card slot, USB port for programming and two USB ports (1 and 2) for peripherals.
 Plug the keyboard into USB 1, plug the gamepad/joystick into USB 2.
 
-Icepi Zero currently has no speaker.
-
 ### Tang Nano 20K
 
 The Tang Nano 20K includes an HDMI Port, SD card slot and USB port for programming.
 Additional peripherals must be wired manually:
 
 * Keyboard/Gamepad/Joystick USB Port. Follow the instructions here <https://github.com/nand2mario/usb_hid_host/blob/main/doc/usb_hid_host.md> to connect USB data lines to PINs 41 and 42. Plug the keyboard or gamepad/joystick here.
-* Speaker. Attach to PIN 29 and GND.
+* Speaker. Attach to PIN 29 and GND. This is only required is not using HDMI audio.
 * RS-232 serial port. Attach to PINs 25, 26 and GND. This is only required if using the VZ RS-232 extension ROM.
 
 ## Limitations
@@ -189,8 +187,6 @@ Building a VZ with 64KiB RAM currently exceeds SRAM capacity of either board.
 
 I/O uses they same keyboard layout as the VZ, therefore some FAT32 filename characters cannot be typed.
 For example, the underscore character.
-
-HDMI audio is not implemented yet.
 
 ## Credits
 
