@@ -706,6 +706,7 @@ static void parse(char *cmdline)
     } else if (!strcmp(cmdline, "PWD")) {
         char cwd[256];
         if (f_getcwd(cwd, sizeof(cwd)) == FR_OK) {
+            fromdos(cwd);
             print(cwd);
             putch('\n');
         } else
