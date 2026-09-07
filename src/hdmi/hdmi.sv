@@ -51,7 +51,8 @@ module hdmi
     // synchronous reset back to 0,0
     input logic 		      reset,
     input logic [23:0] 		      rgb, 
-    input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0],
+    input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word_0,
+    input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word_1,
 
     output reg vsync,
     output reg [10:0] cx,
@@ -69,6 +70,10 @@ module hdmi
     output logic tmds_clock
 `endif    
 );
+
+logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0];
+assign audio_sample_word[0] = audio_sample_word_0;
+assign audio_sample_word[1] = audio_sample_word_1;
 
 localparam int NUM_CHANNELS = 3;
 logic hsync;

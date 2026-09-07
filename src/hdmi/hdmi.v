@@ -8,7 +8,8 @@ module hdmi (
 	interlace,
 	reset,
 	rgb,
-	audio_sample_word,
+	audio_sample_word_0,
+	audio_sample_word_1,
 	vsync,
 	cx,
 	cy,
@@ -34,7 +35,8 @@ module hdmi (
 	input wire interlace;
 	input wire reset;
 	input wire [23:0] rgb;
-	input wire [(2 * AUDIO_BIT_WIDTH) - 1:0] audio_sample_word;
+	input wire [AUDIO_BIT_WIDTH - 1:0] audio_sample_word_0;
+	input wire [AUDIO_BIT_WIDTH - 1:0] audio_sample_word_1;
 	output reg vsync;
 	output reg [10:0] cx;
 	output reg [9:0] cy;
@@ -42,6 +44,9 @@ module hdmi (
 	output wire [9:0] frame_height;
 	output wire [2:0] tmds;
 	output wire tmds_clock;
+	wire [(2 * AUDIO_BIT_WIDTH) - 1:0] audio_sample_word;
+	assign audio_sample_word[0+:AUDIO_BIT_WIDTH] = audio_sample_word_0;
+	assign audio_sample_word[AUDIO_BIT_WIDTH+:AUDIO_BIT_WIDTH] = audio_sample_word_1;
 	localparam signed [31:0] NUM_CHANNELS = 3;
 	reg hsync;
 	wire [1:0] invert;
@@ -213,10 +218,10 @@ module hdmi (
 		end
 	endgenerate
 	wire [29:0] tmds_internal;
-	genvar _gv_i_5;
+	genvar _gv_i_1;
 	generate
-		for (_gv_i_5 = 0; _gv_i_5 < NUM_CHANNELS; _gv_i_5 = _gv_i_5 + 1) begin : tmds_gen
-			localparam i = _gv_i_5;
+		for (_gv_i_1 = 0; _gv_i_1 < NUM_CHANNELS; _gv_i_1 = _gv_i_1 + 1) begin : tmds_gen
+			localparam i = _gv_i_1;
 			tmds_channel #(.CN(i)) tmds_channel(
 				.clk_pixel(clk_pixel),
 				.video_data(video_data[(i * 8) + 7:i * 8]),
