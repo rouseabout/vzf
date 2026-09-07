@@ -349,6 +349,9 @@ static void dir(int l)
             line = 0;
         }
     }
+
+    if (col == 1)
+        putch('\n');
 }
 
 static void erase(const char *filename)
