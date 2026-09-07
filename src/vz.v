@@ -1,3 +1,4 @@
+//`define CONFIG_2KB
 //`define CONFIG_16KB
 `define CONFIG_32KB
 //`define CONFIG_64KB
@@ -58,6 +59,9 @@ module vz (
     localparam CLK_FREQ = 28_500_000;
 
     localparam ROM_WIDTH = 14; /* 16k (0000-3fff) */
+`ifdef CONFIG_2KB
+    localparam RAM1_WIDTH = 11; /* 2k (7800-7fff) */
+`endif
 `ifdef CONFIG_16KB
     localparam RAM1_WIDTH = 14; /* 16k (7800-b7ff) */
 `endif

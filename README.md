@@ -6,7 +6,7 @@ Currently the [Icepi Zero](https://github.com/cheyao/icepi-zero) and [Tang Nano 
 Capabilities:
 
 * Cycle accurate Z80 CPU
-* 16 KiB ROM, extensions ROMs, and 16/32/64 KiB RAM (configurable at synthesis time)
+* 16 KiB ROM, extensions ROMs, and 2/16/32/64 KiB RAM (configurable at synthesis time)
 * MC6847 with HDMI output; PAL and NTSC vertical sync rates supported
 * USB Keyboard
 * USB Gamepad/Joystick
