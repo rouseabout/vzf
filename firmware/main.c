@@ -778,6 +778,16 @@ static int tty_cb(uint8_t ch)
     return 0;
 }
 
+static const char table_4_shift[26] = {
+#define _(x) ((x)-'A')
+    [_('O')] = '[',
+    [_('P')] = ']',
+    [_('K')] = '/',
+    [_('L')] = '?',
+    [_('M')] = '\\',
+#undef _
+};
+
 static const char table_1e_shift[] = {
 #define _(x) ((x)-0x1e)
     [_(0x1e)] = '!', // 1 !
@@ -808,7 +818,12 @@ static int process_scancode(int scancode, int modifiers, int (*cb)(uint8_t ch))
 {
     int ret;
     if (scancode >= 0x4 && scancode <= 0x1d) { // A-Z
-        ret = cb('A' + scancode - 0x4);
+        if (modifiers & (KEYMOD_LSHIFT | KEYMOD_RSHIFT)) {
+            char ch = table_4_shift[scancode - 0x4];
+            ret = ch ? cb(ch) : 0;
+        } else {
+            ret = cb('A' + scancode - 0x4);
+        }
     } else if (scancode <= 0x26) { // 1-9
         if (modifiers & (KEYMOD_LSHIFT | KEYMOD_RSHIFT)) {
             ret = cb(table_1e_shift[scancode - 0x1e]);
