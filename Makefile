@@ -189,3 +189,24 @@ install-tangnano20k-gowin: vzf-firmware.bin impl/pnr/vzf.fs
 
 clean::
 	rm -rf impl/
+
+## Simulation
+
+src/firmware-0.bin: vzf-firmware.bin
+	objcopy -I binary -O binary --interleave=4 --interleave-width=1 -b 0 $< $@
+src/firmware-1.bin: vzf-firmware.bin
+	objcopy -I binary -O binary --interleave=4 --interleave-width=1 -b 1 $< $@
+src/firmware-2.bin: vzf-firmware.bin
+	objcopy -I binary -O binary --interleave=4 --interleave-width=1 -b 2 $< $@
+src/firmware-3.bin: vzf-firmware.bin
+	objcopy -I binary -O binary --interleave=4 --interleave-width=1 -b 3 $< $@
+%.hex: %.bin
+	xxd -p -c 1 $< > $@
+sim: sim.cpp src/firmware-0.hex src/firmware-1.hex src/firmware-2.hex src/firmware-3.hex
+	verilator -Isrc -Isrc/boards/sim -Isrc/tv80 -Wno-fatal --trace -cc top.v --exe -CFLAGS "`sdl2-config --cflags`" -LDFLAGS "`sdl2-config --libs`" $<
+	make -C obj_dir -j 8 -f Vtop.mk Vtop
+	cd src && ../obj_dir/Vtop
+clean::
+	rm -f src/firmware-0.bin src/firmware-1.bin src/firmware-2.bin src/firmware-3.bin
+	rm -f src/firmware-0.hex src/firmware-1.hex src/firmware-2.hex src/firmware-3.hex
+	rm -rf obj_dir/

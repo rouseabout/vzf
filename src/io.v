@@ -67,7 +67,7 @@ module io
     output wire [1:0] O_sdram_ba,
     output wire [(SDRAM_DATA_WIDTH/8)-1:0] O_sdram_dqm
 );
-    localparam integer SRAM_WIDTH = 15;
+    localparam integer SRAM_WIDTH = 20;
     localparam integer SRAM_BYTES = (1 << SRAM_WIDTH);
 
     localparam integer SDRAM_BYTES = 1048576;

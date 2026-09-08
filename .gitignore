@@ -1,6 +1,9 @@
 impl/
 nextpnr.log
+obj_dir/
 src/boards/icepi-zero/clock*.v
+src/firmware-*.bin
+src/firmware-*.hex
 vzf-*
 yosys.log
 *.o

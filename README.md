@@ -205,6 +205,7 @@ Resources used in the development of this project:
 * FatFS. <https://elm-chan.org/fsw/ff/> Generic FAT Filesystem Module.
 * `diskio.c`. <https://github.com/juliannojungle/fs.ll> SD card I/O.
 * VzEmulator. <https://github.com/PaulAnderson/VzEmulator> Idea for floppy drive emulator.
+* `spi_sd_model.v`. <https://github.com/vivasaayi/32-bit-micro-processor>. SD card simulation.
 
 ## Contact
 
