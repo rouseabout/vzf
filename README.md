@@ -10,7 +10,7 @@ Capabilities:
 * MC6847 with HDMI output; PAL and NTSC vertical sync rates supported
 * USB Keyboard
 * USB Gamepad/Joystick
-* Floppy Disk Drive emulator; supports .DSK images and .VZ files read from SD card
+* Floppy Disk Drive emulator; supports .DSK images, .VZ and .CAS files read from SD card
 * Cassette Deck emulator; supports .WAV files
 * Speaker
 * Printer; text is sent down the the USB programming cable
@@ -45,7 +45,7 @@ It is not possible to load cassette tapes with TURBO clock speed.
 
 To mount a floppy disk from SD card, press F2 to select I/O, type `MOUNT FILENAME.EXT`, and then press F1 to return to the VZ.
 Use ordinary DOS commands or programs to interact with the disk.
-Different media can be mounted including .DSK files (of either 98560 and 99184 byte size), .VZ program files (BASIC and assembly) and data files.
+Different media can be mounted including .DSK files (of either 98560 and 99184 byte size), .VZ or .CAS program files (BASIC and assembly) and data files.
 
 Changes made to the floppy disk are not automatically saved to the SD card.
 If you make changes to a floppy disk, and wish to save them, switch back to the I/O console and type `SAVE NEWFILE.DSK`.
@@ -69,7 +69,7 @@ Some commands take arguments.
 |`ERA filename` |Erase filename.  |
 |`HEXDUMP filename` |Dump contents of file to screen.  |
 |`INSPECT filename` |Inspect contents of a floppy disk image. |
-|`MOUNT filename` |Mount a floppy disk image (.DSK), program (.VZ) or other data file into the selected floppy drive.  |
+|`MOUNT filename` |Mount a floppy disk image (.DSK), program (.VZ or .CAS) or other data file into the selected floppy drive.  |
 |`PLAY filename` |Play .WAV file into cassette input port.  |
 |`PWD` |Display current directory. |
 |`SAVE filename` |Save contents of the selected floppy drive to filename. |

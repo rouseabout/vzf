@@ -17,6 +17,16 @@ typedef struct {
     uint8_t start_addrh;
 } VZFILE;
 
+typedef struct {
+    unsigned char preamble[128];
+    unsigned char leadin[5];
+    unsigned char ftype;
+} CASFILE1;
+
+typedef struct {
+    unsigned short start_addr;
+    unsigned short end_addr;
+} CASFILE2;
 
 void build_track0(uint8_t *data, uint8_t type, const char filename[8], uint16_t start_addr, uint16_t end_addr, uint16_t file_size);
 void build_track(uint8_t *data, FIL *fp, uint16_t header_size, uint8_t track);

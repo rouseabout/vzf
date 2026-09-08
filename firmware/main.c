@@ -466,6 +466,56 @@ static int virtual_prep(VirtualInfo *virtual, FIL *file, const char *filename)
         end_addr = start_addr + content_size;
         file_size = content_size;
         header_size = sizeof(VZFILE);
+    } else if (ends_with(filename, ".CAS")) {
+        CASFILE1 header1;
+        UINT nread;
+        if (f_read(file, &header1, sizeof(CASFILE1), &nread) != FR_OK) {
+            print("?READ CAS FILE HEADER FAILED\n");
+            return -1;
+        }
+
+        if (nread != sizeof(CASFILE1)) {
+            print("?TRUNCATED CAS FILE\n");
+            return -1;
+        }
+
+        switch (header1.ftype) {
+        case 0xF0: type = 'T'; break;
+        case 0xF1: type = 'B'; break;
+        default:
+            print("?UNSUPPORTED CAS FILE TYPE\n");
+            return -1;
+        }
+
+        char ch;
+        do {
+            if (f_read(file, &ch, 1, &nread) != FR_OK) {
+                print("?READ CAS FILE HEADER FAILED\n");
+                return -1;
+            }
+        } while(ch);
+
+        CASFILE2 header2;
+        if (f_read(file, &header2, sizeof(CASFILE2), &nread) != FR_OK) {
+            print("?READ CAS FILE HEADER FAILED\n");
+            return -1;
+        }
+
+        if (nread != sizeof(CASFILE2)) {
+            print("?TRUNCATED CAS FILE\n");
+            return -1;
+        }
+
+        start_addr = header2.start_addr;
+        end_addr = header2.end_addr;
+        header_size = f_tell(file);
+
+        if (size < header_size + 2) {
+            print("?TRUNCATED CAS FILE\n");
+            return -1;
+        }
+
+        file_size = size - header_size - 2;
     } else {
         type = 'D';
         start_addr = 0;
