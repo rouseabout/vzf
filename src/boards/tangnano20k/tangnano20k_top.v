@@ -100,7 +100,6 @@ module tangnano20k_top
     wire tmds_clock;
 
     wire pal_mode;
-    wire vsync;
     wire [10:0] cx;
     wire [9:0] cy;
     wire [10:0] frame_width;
@@ -126,7 +125,6 @@ module tangnano20k_top
         .interlace(1'b0),
         .reset(1'b0),
 
-        .vsync(vsync),
         .cx(cx),
         .cy(cy),
         .frame_width(frame_width),
@@ -288,7 +286,7 @@ module tangnano20k_top
         .key_modifiers(key_modifiers_r), .key0(key0_r), .key1(key1_r), .key2(key2_r), .key3(key3_r),
         .game_l(game_l_r), .game_r(game_r_r), .game_u(game_u_r), .game_d(game_d_r), .game_a(game_a_r), .game_b(game_b_r),
         .pal_mode(pal_mode),
-        .vsync(vsync), .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .rgb(rgb), .fdcemu_en(1'b1), .reset_n(reset_n & locked & video_locked),
+        .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .rgb(rgb), .fdcemu_en(1'b1), .reset_n(reset_n & locked & video_locked),
         .sd_clk(sdclk), .sd_mosi(sdcmd), .sd_miso(sddat[0]), .sd_csn(sddat[3]),
 
         .speaker(speaker),

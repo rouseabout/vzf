@@ -21,8 +21,26 @@ module mc6847
     input [9:0] cy,
     input [10:0] frame_width,
     input [9:0] frame_height,
+    output reg vsync,
     output reg [23:0] rgb
 );
+
+    wire [9:0] screen_width      = 720;
+    wire [9:0] hsync_pulse_start = 24;
+    wire [9:0] hsync_pulse_size  = 72;
+    wire [9:0] screen_height     = pal_mode ? (48 + 48 + 384 + 48) : (48 + 384 + 48);
+    wire [9:0] vsync_pulse_start = 0;
+    wire [9:0] vsync_pulse_size  = 12;
+
+    always @(*) begin
+        if (cy == screen_height + vsync_pulse_start - 1)
+            vsync <= ~(cx >= screen_width + hsync_pulse_start);
+        else if (cy == screen_height + vsync_pulse_start + vsync_pulse_size - 1)
+            vsync <= ~(cx < screen_width + hsync_pulse_start);
+        else
+            vsync <= ~(cy >= screen_height + vsync_pulse_start && cy < screen_height + vsync_pulse_start + vsync_pulse_size);
+    end
+
     reg [6:0] cy6; // cy / 6
     reg [2:0] cy6_frac;
     reg [4:0] cy24;
@@ -153,8 +171,10 @@ module mc6847
             rgb <= 24'h000000;
         end else if (visible_x1 & (visible_y || status_y)) begin
             rgb <= pal_to_rgb(pixel_color);
+        end else if (pal_mode & (cy < 48 | cy >= 48 + 48 + 384 + 48)) begin
+            rgb <= 24'h000000;
         end else begin
-            rgb <= (cx < 720) & (cy < 576) ? pal_to_rgb(bordercolor) : 24'h000000;
+            rgb <= (cx < screen_width) & (cy < screen_height) ? pal_to_rgb(bordercolor) : 24'h000000;
         end
     end
 endmodule

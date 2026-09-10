@@ -58,7 +58,6 @@ int main(int argc, char *argv[])
     memset(image, 0, sizeof(image));
 
     int quit = 0;
-    int old_vsync = 0;
     top->cx = 0;
     top->cy = 0;
     top->fdcemu_en = 1;
@@ -66,8 +65,6 @@ int main(int argc, char *argv[])
     top->frame_height = FRAME_HEIGHT;
 
     while (!quit) {
-        top->vsync = !(top->cx >= 720 && top->cy >= 576);
-
         top->clk_pixel = 0;
         top->eval();
 
@@ -75,7 +72,7 @@ int main(int argc, char *argv[])
         top->eval();
         top->reset_n = 1;
 
-        if (old_vsync && !top->vsync) {
+        if (!top->cx && !top->cy) {
             SDL_UpdateTexture(texture, nullptr, image, FRAME_WIDTH*4);
             SDL_RenderClear(renderer);
             SDL_RenderCopy(renderer, texture, nullptr, nullptr);
@@ -105,8 +102,6 @@ int main(int argc, char *argv[])
                 top->cy=0;
             }
         }
-
-        old_vsync = top->vsync;
     }
 
     top->final();

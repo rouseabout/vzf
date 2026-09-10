@@ -52,7 +52,6 @@ module top #(
     input fdcemu_en,
 
     output reg pal_mode,
-    input vsync,
     input [WIDTH_BITS-1:0] cx,
     input [HEIGHT_BITS-1:0] cy,
     input [10:0] frame_width,
@@ -118,6 +117,7 @@ module top #(
     assign vdg_bw          = show_vz ? 1'b0               : 1'b1;
     assign vdg_show_status = vdg_status2 ? vz_vdg_show_status : (top_status_show_counter > 0);
     assign vdg_status_data = vdg_status2 ? vz_vdg_status_data : top_status_data;
+    wire vsync;
 
     mc6847 #(.LEFT_EDGE(LEFT_EDGE), .TOP_EDGE(TOP_EDGE)) mc6847(
         .clk(clk_pixel),
@@ -130,7 +130,7 @@ module top #(
         .css(vdg_css),
         .bw(vdg_bw),
         .show_status(vdg_show_status), .status2(vdg_status2), .addr_status(vdg_status_addr), .di_status(vdg_status_data),
-        .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .rgb(rgb));
+        .cx(cx), .cy(cy), .frame_width(frame_width), .frame_height(frame_height), .vsync(vsync), .rgb(rgb));
 
     wire [10:0] mosi_seek;
     wire [1:0] miso_wprotect;
