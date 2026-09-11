@@ -74,7 +74,11 @@ module top #(
 `else
             show_vz <= 0;
 `endif
+`ifdef VERILATOR
+            speed <= 2'd2;
+`else
             speed <= 2'd0;
+`endif
             pal_mode <= 1;
             hear_cassette <= 1;
         end else begin
